@@ -13,7 +13,23 @@ public class MainActivity extends AppCompatActivity {
     private Button buttonStop; // кнопка остановки секундомера
     private TextView stopwatchOut; // поле вывода результирующей информации
 
+    // дополнительное поля логики
+    private long startTime = 0L; // стартовое время
+    private long timeInMilliseconds = 0L; // текущее время в миллисекундах
+    private long timePause = 0L; // время в состоянии "Пауза"
+    private long updatedTime = 0L; // обновлённое время
 
+    /**
+     * К потоку (thread) программы нам нужно привязать очередь сообщений
+     * Мы можем указать, чтобы сообщение ушло на обработку не сразу, а спустя определенное кол-во времени
+     * Нам пригодится обработчик Handler
+     * Handler - это механизм, который позволяет работать с очередью сообщений
+     * Он привязан к конкретному потоку (thread) и работает с его очередью
+     * Handler умеет помещать сообщения в очередь, при этом он ставит самого себя в качестве получателя этого сообщения
+     * И когда приходит время, система достает сообщение из очереди и отправляет его адресату (т.е. в Handler) на обработку
+     */
+
+    private Handler handler = new Handler(); // обработчик очереди сообщений
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +71,27 @@ public class MainActivity extends AppCompatActivity {
                     stopwatchOut.setText(getString(R.string.messageStop)); // загрузка сообщения о прекращении отсчёта времени
                     break;
             }
+        }
+    };
+    // создание нового потока для обновления времени с помощью объекта интерфейса Runnable
+    private Runnable updateTimerThread = new Runnable() {
+        public void run() { // внутри метода run() помещается код выполняемого потока
+            timeInMilliseconds = SystemClock.uptimeMillis() - startTime; // определение текущего времени
+            updatedTime = timePause + timeInMilliseconds; // обновлённое время
+
+            int milliseconds = (int) (updatedTime % 1000); // определение количества миллисекунд
+            int second = (int) (updatedTime / 1000); // определение количества секунд
+            int minute = second / 60; // определение количества минут
+            int hour = minute / 60; // определение количества часов
+            int day = hour / 24; // определение количества дней
+
+            second = second % 60; // ограничение количества секунд 60 секундами
+            minute = minute % 60; // ограничение количества минут 60 минутами
+            hour = hour % 24; // ограничение количества часов 24 часами
+
+            // запись времени в окне вывода информации
+            stopwatchOut.setText("" + day + ":" + hour + ":" + minute + ":" + String.format("%02d", second) + ":" + String.format("%03d", milliseconds));
+            handler.postDelayed(this, 0); // запуск потока с нулевой задержкой
         }
     };
 }
